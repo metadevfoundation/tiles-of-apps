@@ -1,5 +1,5 @@
 var boom = require('boom');
-var es = require('../configs/es');
+var lowdb = require('../configs/lowdb');
 var url = require('../configs/base-url');
 
 function controller(request, reply) {
@@ -24,47 +24,23 @@ function controller(request, reply) {
 }
 
 controller.recentlyCreated = function(data) {
-    return new Promise(function(resolve, reject) {
-        es.search({
-            index: 'customelements',
-            type: 'repo',
-            sort: 'created_at:desc',
-            size: 5,
-        }).then(function(body) {
-            resolve(body.hits.hits);
-        }, function (error) {
-            reject(boom.wrap(error));
-        });
-    });
+    return new Promise(function(resolve) {
+        var data = lowdb('repos').chain().sortBy('created_at').reverse().value()
+        resolve(data);
+});
 };
 
 controller.lastUpdated = function(data) {
-    return new Promise(function(resolve, reject) {
-        es.search({
-            index: 'customelements',
-            type: 'repo',
-            sort: 'pushed_at:desc',
-            size: 5,
-        }).then(function(body) {
-            resolve(body.hits.hits);
-        }, function (error) {
-            reject(boom.wrap(error));
-        });
+    return new Promise(function(resolve) {
+        var data = lowdb('repos').chain().sortBy('pushed_at').reverse().value()
+        resolve(data);
     });
 };
 
 controller.mostPopular = function(data) {
-    return new Promise(function(resolve, reject) {
-        es.search({
-            index: 'customelements',
-            type: 'repo',
-            sort: 'stargazers_count:desc',
-            size: 5,
-        }).then(function(body) {
-            resolve(body.hits.hits);
-        }, function (error) {
-            reject(boom.wrap(error));
-        });
+    return new Promise(function(resolve) {
+        var data = lowdb('repos').chain().sortBy('stargazers_count').reverse().value()
+        resolve(data);
     });
 };
 

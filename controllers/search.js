@@ -1,5 +1,5 @@
 var boom = require('boom');
-var es = require('../configs/es');
+var lowdb = require('../configs/lowdb');
 var joi = require('joi');
 var paginate = require('handlebars-paginate');
 var Handlebars = require('handlebars');
@@ -46,44 +46,27 @@ controller.validate = function(request) {
 };
 
 controller.find = function(params) {
-    return new Promise(function(resolve, reject) {
-        var options = {
-            index: 'customelements',
-            type: 'repo',
-            sort: 'stargazers_count:desc',
-            q: params.q + '*',
-            size: params.perPage,
-            from: (params.page - 1) * params.perPage
+    return new Promise(function(resolve) {
+
+        var data = lowdb('repos').chain().filter(function(v) { return params.q.match(v.full_name) }).value();
+        var response = {
+            q: params.q,
+            total: data.length,
+            results: data
         };
 
-        es.search(options).then(function(body) {
-            var results = [];
-
-            for (var i = 0; i < body.hits.hits.length; i++) {
-                results.push(body.hits.hits[i]._source);
+        var html = template({
+            pagination: {
+                page: params.page,
+                pageCount: Math.ceil(response.total / params.perPage)
             }
-
-            var response = {
-                q: params.q,
-                total: body.hits.total,
-                results: results
-            };
-
-            var html = template({
-                pagination: {
-                    page: params.page,
-                    pageCount: Math.ceil(body.hits.total / params.perPage)
-                }
-            });
-
-            if (Math.ceil(body.hits.total / params.perPage) > 1) {
-                response.pagination = html;
-            }
-
-            resolve(response);
-        }, function (error) {
-            reject(boom.create(error.status, error.message));
         });
+
+        if (Math.ceil(response.total / params.perPage) > 1) {
+            response.pagination = html;
+        }
+
+        resolve(response);
     });
 };
 
